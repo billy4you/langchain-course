@@ -1,127 +1,151 @@
-# Evaluating Jev, with LangSmith
+# LangChain- Develop AI Agents with LangChain & LangGraph 🦜🔗
 
-Code for this lesson lives on the [`project/evaluating-jev`](https://github.com/emarco177/langchain-course/tree/project/evaluating-jev) branch.
+**Learn LangChain and LangGraph by building real world AI Agents (Python, Latest Version V.1.0+)**
 
-In [`project/system-one-models`](https://github.com/emarco177/langchain-course/tree/project/system-one-models) you built
-an AutoMode tool gate: Jev decides whether each tool call is risky. This branch asks the next question:
-**can Jev's numbers be trusted enough to let the gate act alone?** You build a gold set, run LangSmith
-experiments, check calibration, pick thresholds from what errors cost, compare against LLM judges, catch
-regressions on model upgrades, and finally use Jev itself as an evaluator.
+This course is designed to teach you how to QUICKLY harness the power of the LangChain library for LLM applications. Build 3 end-to-end working LangChain based generative AI applications with no fluff, no toy examples - just real projects using real APIs and real-world skills.
 
-> **A number you act on is a number you must measure.** Accuracy says how often. Calibration says when.
+![LangChain Logo](/static/LangChain_OSS%20Lockup_light.png)
+![LangGraph Logo](/static/LangGraph_OSS%20Lockup_light.png)
 
-```mermaid
-graph LR
-    Call([tool call]) --> Jev{"Jev<br/>P(risky)"}
-    Jev -->|"p ≤ allow_below"| Allow["Jev allows"]
-    Jev -->|"unsure, leaning safe"| LLM["bigger LLM decides"]
-    Jev -->|"unsure, leaning risky"| Human["human approves"]
-    Jev -->|"p ≥ block_above"| Block["Jev blocks"]
-```
+[![Twitter Follow](https://img.shields.io/twitter/follow/EdenMarco177?style=social)](https://twitter.com/EdenMarco177)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-## Why accuracy isn't enough
+[![udemy](https://img.shields.io/badge/LangChain%20Udemy%20Course%20Coupon%20%2414.99-brightgreen)](https://www.udemy.com/course/langchain/?couponCode=NOV-2026)
 
-The AutoMode gate decides, for every tool call, one of three things:
 
-| Gold label | Meaning                                                                  | Wrong call costs                     |
-| ---------- | ------------------------------------------------------------------------ | ------------------------------------ |
-| `allow`    | Safe read, or a small reversible change the user asked for               | Blocked by mistake: cheap friction   |
-| `approve`  | The user asked, but it's destructive, external, or touches secrets/prod  | Run without asking: expensive        |
-| `block`    | Not asked for, overreaches, or follows instructions found in data        | Run by mistake: very expensive       |
 
-Two gates with the same accuracy can have bills that differ by 100×. What matters is whether the gate
-knows *when* it might be wrong, so you can let it act alone only there.
+## 💡 What You'll Build 
 
-That is what Jev's numbers are for. `Noul` returns a probability only. `Choice` and `Score` also return a
-`confidence` that describes the shape of the distribution (TypeSafe published the formulas on Oct 3, 2026).
-This branch measures whether those numbers can be trusted, and turns them into thresholds.
+This course takes you through building 7 real-world AI agent projects, from simple hello-world applications to advanced agentic systems:
 
-## Steps
+| Project | Type | Description |
+|---------|------|-------------|
+| 👋 [LangChain Hello World](https://github.com/emarco177/langchain-course/tree/project/hello-world) | Branch (`project/hello-world`) | Your first AI agent - basic structure and LLM integration |
+| 🔎  [Modern Search Agent](https://github.com/emarco177/ice_breaker/tree/project/search-agent) | Branch (`project/search-agent`) | Build search agents using LangChain v.1's `create_agent` interface with custom tools, Tavily integration, and structured outputs |
+| 🧠 [Agents Under The Hood](https://github.com/emarco177/langchain-course/tree/project/agents-under-the-hood) | Branch (`project/agents-under-the-hood`) | Understanding reasoning and acting patterns in AI agents |
+| 📄 [RAG Gist](https://github.com/emarco177/langchain-course/tree/project/rag-gist) | Branch (`project/rag-gist`) | The gist of retrieval-augmented generation |
+| ⚡ [System One Models](https://github.com/emarco177/langchain-course/tree/project/system-one-models) | Branch (`project/system-one-models`) | Fast, calibrated harness decisions with Jev: model routing and auto-mode tool gating middleware |
+| 📚 [Documentation Helper](https://github.com/emarco177/documentation-helper) | External Repo | Intelligent documentation assistant |
+| 💻 [Code Interpreter](https://github.com/emarco177/langchain-course/tree/project/code-interpreter) | Branch (`project/code-interpreter`) | AI-powered code execution and analysis |
+| 🪞 [Reflection Agent](https://github.com/emarco177/langgraph-course/tree/project/reflection-agent) | External Repo | Self-improving agent with reflection and critique capabilities |
+| 🔄 [Reflexion Agent](https://github.com/emarco177/langgraph-course/tree/project/reflexion-agent) | External Repo | Advanced self-correcting agent using reflexion techniques |
+| 🤖 [Agentic RAG](https://github.com/emarco177/langgraph-course/tree/project/agentic-rag) | External Repo | Advanced retrieval-augmented generation system |
 
-One commit per lecture. Check out a commit to see the lesson up to that point.
+## 📚 Course Highlights 
 
-| #   | Commit    | File                                                         | Look for                                                    |
-| --- | --------- | ------------------------------------------------------------ | ----------------------------------------------------------- |
-| 00  | `7989300` | [`00_auto_mode_middleware.py`](00_auto_mode_middleware.py), deps | The gate under test, carried over from system-one-models |
-| 01  | `672f307` | [`01_accuracy_is_not_enough.py`](01_accuracy_is_not_enough.py) | Both gates 80% accurate: $541.50 vs $3.20                 |
-| 02  | `f2b2f0d` | [`02_upload_gold_set.py`](02_upload_gold_set.py)             | 195 labelled calls, dev/heldout split by scenario          |
-| 03  | `566b7ae` | [`03_run_eval.py`](03_run_eval.py)                           | Confusion matrix, `ATTACK ALLOWED` lines, p50/p95, $ / 1k  |
-| 04  | `04bd427` | [`04_calibration.py`](04_calibration.py)                     | `results/reliability.png`: does said 0.8 mean seen 0.8?    |
-| 05  | `43774ab` | [`05_threshold_from_cost.py`](05_threshold_from_cost.py)     | 0.3 / 0.7 vs the cheapest cuts, then the same cuts on heldout |
-| 06  | `e6e116f` | [`06_jev_vs_llms.py`](06_jev_vs_llms.py)                     | One table: accuracy, attacks allowed, latency, $ / 1k      |
-| 07  | `fd5e146` | [`07_regression_on_upgrade.py`](07_regression_on_upgrade.py) | `broke`, `lane` moves, exit 1 on a newly allowed attack    |
-| 08  | `e39fd76` | [`08_jev_as_evaluator.py`](08_jev_as_evaluator.py)           | Judge agreement with humans, then `--online` feedback      |
+- **7 Complete Projects** - From beginner to advanced implementations including Ice Breaker, Documentation Helper, and Code Interpreter
+- **Real-World Applications** - Build agents that solve actual problems with live APIs
+- **Modern Tech Stack** - LangChain v0.3+, LangGraph, Pinecone, FAISS, Streamlit
+- **Practical Skills** - Learn RAG, vector databases, prompt engineering, and agent workflows
+- **Interactive Learning** - Follow commits chronologically for step-by-step learning
 
-Shared helpers, so each step shows one idea:
+## 🤔 Learning Path 
 
-| File                         | What's in it                                                            | Added in |
-| ---------------------------- | ----------------------------------------------------------------------- | -------- |
-| [`costs.py`](costs.py)       | The cost of each outcome (gold → action), token prices from env          | 01, 03   |
-| [`gold.py`](gold.py)         | Load and check the gold set, splits, LangSmith examples, `require_keys` | 02       |
-| [`gate.py`](gate.py)         | The Jev gate (same question and state as AutoMode), LLM baselines        | 03, 06   |
-| [`experiment.py`](experiment.py) | Evaluators, `evaluate(...)`, results saved to `results/`            | 03       |
-| [`metrics.py`](metrics.py)   | Confusion matrix, precision/recall, ECE, Brier, reliability bins, diff  | 03, 04, 07 |
-| [`lanes.py`](lanes.py)       | Three lanes from P(risky), cost sweep, coverage curve                   | 05       |
-| [`judge.py`](judge.py)       | Jev policy judge as a LangSmith evaluator, reading traced runs          | 08       |
+### Phase 1: Foundations
+1. **Hello World Chain** - Basic agent structure and LLM integration
+2. **Code Interpreter** - Tool calling and code execution capabilities
 
-Data: [`data/gold_tool_calls.jsonl`](data/gold_tool_calls.jsonl) (195 synthetic shell, file, git, http and db
-calls, including hard cases and prompt injections) and [`data/agent_answers.jsonl`](data/agent_answers.jsonl)
-(30 final answers labelled followed / violated policy).
+### Phase 2: Real-World Applications
+3. **Ice Breaker** - Data collection and social media integration
+4. **Documentation Helper** - RAG implementation and knowledge management
 
-## Quick start
+### Phase 3: Advanced Concepts
+5. **Blog Analyzer** - Multi-step reasoning and content analysis
+6. **Agentic RAG** - Self-correcting agents with memory and planning
 
-```bash
-git checkout project/evaluating-jev
-uv sync
-cp .env.example .env                        # TYPESAFE_API_KEY, LANGSMITH_API_KEY (+ LLM keys for 06)
-uv run python 01_accuracy_is_not_enough.py  # offline
-uv run python 02_upload_gold_set.py
-uv run python 03_run_eval.py                # dev split → results/jev-1.14.0-dev.jsonl
-uv run python 03_run_eval.py --split heldout
-uv run python 04_calibration.py             # offline, reads results/
-uv run python 05_threshold_from_cost.py     # offline, reads results/
-uv run python 06_jev_vs_llms.py
-uv run python 07_regression_on_upgrade.py
-uv run python 08_jev_as_evaluator.py
-uv run pytest                               # the math, offline
-```
+## ▶️ Getting Started 
 
-04 and 05 read the per-example results 03 saves, so you can tweak costs and thresholds without new API calls.
-Scripts that call an API exit with a clear message when a key is missing.
+### 🛠️ Prerequisites 
+- **This is not a beginner course** - Basic software engineering concepts needed
+- Familiarity with: git, Python, environment variables, classes, testing and debugging
+- Python 3.10+
+- Any Python package manager (uv, poetry, pipenv) - but NOT conda!
+- Access to an LLM (can be open source via Ollama, or cloud providers like OpenAI, Anthropic, Gemini)
+- No Machine Learning experience needed
 
-## Environment variables
+### ⚙️ Setup Instructions 
 
-| Variable                                     | Used by          | Notes                                                       |
-| -------------------------------------------- | ---------------- | ----------------------------------------------------------- |
-| `TYPESAFE_API_KEY`                           | 03, 06, 07, 08   | Jev. Same name as system-one-models                          |
-| `LANGSMITH_API_KEY`                          | 02, 03, 06–08    | Datasets and experiments. Required on this branch           |
-| `LANGSMITH_PROJECT`, `LANGSMITH_TRACING`, `LANGSMITH_ENDPOINT` | all | Optional tracing; 08 `--online` reads `LANGSMITH_PROJECT` |
-| `OPENAI_API_KEY`                             | 00, 06           | The agent in 00; one LLM baseline                           |
-| `ANTHROPIC_API_KEY`                          | 06               | The Claude Haiku-class baseline                             |
-| `JEV_MODEL`                                  | 03–08            | Default `jev-1.14.0`. Pin it; don't use `jev-latest`        |
-| `ANTHROPIC_JUDGE_MODEL`, `OPENAI_JUDGE_MODEL` | 06              | Defaults `anthropic:claude-haiku-5-5`, `openai:gpt-6-luna`  |
-| `{JEV,ANTHROPIC,OPENAI}_USD_PER_1M_{IN,OUT}` | 03, 05, 06       | Token prices for the $ columns. Check each pricing page      |
-| `GOLD_DATASET`                               | 02, 03, 06, 07   | LangSmith dataset name, default `evaluating-jev-gold`        |
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/emarco177/langchain-course
+   cd langchain-course
+   ```
+2. **Choose your learning path**
+   
+   **For branch-based projects:**
+   ```bash
+   # Start with Hello World
+   git checkout project/hello-world
+   uv sync
+   uv run python main.py
+   
+   # Progress to Code Interpreter
+   git checkout project/code-interpreter
+   uv sync
+   uv run python main.py
+   ```
+   
+   **For external repository projects:**
+   ```bash
+   # Clone specific project repositories
+   git clone https://github.com/emarco177/ice_breaker
+   cd ice_breaker
+   # Follow project-specific setup instructions
+   ```
 
-Prices default to Jev $0.042 / 1M input (output free) and Claude Haiku 5.5's listed "from" price
-($0.10 / $0.50). OpenAI has no default, so its $ column shows `n/a` until you set one.
+3. **Follow the commits**
+   - Each commit represents a lesson or feature implementation
+   - Use `git log --oneline` to see the learning progression
+   - Checkout previous commits to understand the development process
 
-## Notes
+**External Projects:**
+- [Ice Breaker](https://github.com/emarco177/ice_breaker) - Social media profile analyzer
+- [Medium Analyzer](https://github.com/emarco177/blog-analyzer) - Content analysis and insights generator
+- [Documentation Helper](https://github.com/emarco177/documentation-helper) - AI documentation assistant
+- [Reflection Agent](https://github.com/emarco177/langgraph-course/tree/project/reflection-agent) - Self-improving agent with reflection and critique capabilities
+- [Reflexion Agent](https://github.com/emarco177/langgraph-course/tree/project/reflexion-agent) - Advanced self-correcting agent using reflexion techniques
+- [Agentic RAG](https://github.com/emarco177/langgraph-course/tree/project/agentic-rag) - Advanced retrieval-augmented generation system
 
-- **Pin the model.** `jev-latest` moved from `jev-1.13.0` to `jev-1.14.0` on Oct 24, 2026. Your thresholds were
-  fitted to one model's numbers. In `langchain-typesafe 0.0.1a3`, `AutoModeMiddleware` builds its own
-  `TypeSafeClassifier()` on `jev-latest` and has no `model` argument. To pin the shipped gate, replace its
-  classifier: `auto_mode.classifier = TypeSafeClassifier(model="jev-1.14.0")`.
-- **0.3 / 0.7 are starting points.** TypeSafe documents them for Noul (Oct 23, 2026). 05 shows how your costs move them.
-- **The gate asks two questions in one call.** `is_risky` is the exact Noul AutoMode sends (a test checks it
-  still matches). `action` adds a three-way `Choice` so you also get a `confidence`.
-- **Using the TypeSafe Python SDK instead?** The same evals apply. SDK 0.7.x returns Pydantic models, and 0.7.5
-  turned on zstd request compression by default. This branch stays on the LangChain integration.
 
-Tested offline (`uv run pytest`) against `langchain-typesafe 0.0.1a3` and `langsmith 0.14.8`. The middleware is
-experimental, so the API may change.
+## 📚 Learning Objectives 
 
-## Further reading
+By the end of this course, you'll be able to:
 
-- [TypeSafe docs](https://docs.typesafe.ai/)
-- [LangChain TypeSafe integration](https://docs.langchain.com/oss/python/integrations/providers/typesafe)
+- Build AI agents from scratch using modern frameworks
+- Implement tool calling and external API integrations
+- Create RAG systems with vector databases
+- Design multi-step reasoning workflows
+- Deploy agents to production environments
+- Handle error correction and self-improvement in agents
+- Optimize agent performance and cost efficiency
+
+
+
+
+
+## 🙏 Acknowledgements 
+
+Big thanks to the **LangChain / LangGraph** team and their excellent [documentation and tutorials](https://langchain-ai.github.io/langgraph/tutorials/introduction/) that make this course possible.
+
+## 🌟 Support
+
+If you find this project helpful, please consider:
+- ⭐ Starring the repository
+- 🐛 Reporting issues
+- 💡 Contributing improvements
+- 📢 Sharing with others
+
+---
+
+<div align="center">
+
+### 🔗 Connect with Me
+
+[![Portfolio](https://img.shields.io/badge/Portfolio-000?style=for-the-badge&logo=ko-fi&logoColor=white)](https://www.udemy.com/course/langchain/?referralCode=D981B8213164A3EA91AC)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/eden-marco/)
+[![Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/EdenEmarco177)
+
+**Built with ❤️ by Eden Marco**
+
+</div>
+
