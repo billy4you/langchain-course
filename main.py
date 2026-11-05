@@ -14,7 +14,7 @@ load_dotenv()
 print("Initializing components...")
 
 embeddings = OpenAIEmbeddings()
-llm = ChatOpenAI()
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 vectorstore = PineconeVectorStore(
     index_name=os.environ["INDEX_NAME"], embedding=embeddings
